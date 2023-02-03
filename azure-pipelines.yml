@@ -1,0 +1,54 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- None
+stages:
+    - stage: buildstage
+      jobs:
+          - job: buildjob
+            pool:
+              vmimage: ubuntu-latest
+            steps:
+             - task: DockerInstaller@0
+               inputs:
+                  dockerVersion: '17.09.0-ce'
+             - task: Docker@1
+               inputs:
+                  containerregistrytype: 'Azure Container Registry'
+                  azureSubscriptionEndpoint: 'Connection-1'
+                  azureContainerRegistry: 'acrpythonapp12.azurecr.io'
+                  command: 'Build an image'
+                  dockerFile: 'Dockerfile'
+                  imageName: '$(Build.Repository.Name):latest'
+             - task: Docker@1
+               inputs:
+                  containerregistrytype: 'Azure Container Registry'
+                  azureSubscriptionEndpoint: 'Connection-1'
+                  azureContainerRegistry: 'acrpythonapp12.azurecr.io'
+                  command: 'Push an image'
+                  imageName: '$(Build.Repository.Name):latest'
+             - task: PublishPipelineArtifact@1
+               inputs:
+                  targetPath: '$(Pipeline.Workspace)'
+                  artifact: 'drop'
+                  publishLocation: 'pipeline'
+    - stage: devstage
+      jobs:
+          - job: devjob
+            pool:
+              vmimage: ubuntu-latest
+            steps:
+             - download: current
+               artifact: drop
+             - task: AzureWebAppContainer@1
+               inputs:
+                azureSubscription: 'Connection-1'
+                appName: 'appservicepython'
+                containers: 'Python-project:latest'
+
+
+
+
